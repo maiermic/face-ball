@@ -1,11 +1,426 @@
+<!-- Code is based on https://github.com/justadudewhohacks/face-api.js/blob/a86f011d72124e5fb93e59d5c4ab98f699dd5c9c/examples/examples-browser/views/faceDetection.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <script src="https://cdn.rawgit.com/justadudewhohacks/face-api.js/0.22.2/dist/face-api.min.js"></script>
+    <script src="https://cdn.rawgit.com/justadudewhohacks/face-api.js/0.22.2/examples/examples-browser/public/js/commons.js"></script>
+    <script src="https://cdn.rawgit.com/justadudewhohacks/face-api.js/0.22.2/examples/examples-browser/public/js/faceDetectionControls.js"></script>
+    <link rel="stylesheet"
+          href="https://cdn.rawgit.com/justadudewhohacks/face-api.js/0.22.2/examples/examples-browser/public/styles.css">
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/css/materialize.css">
+    <script type="text/javascript"
+            src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/js/materialize.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/victor/1.1.0/victor.min.js"></script>
     <title>Face Ball</title>
 </head>
 <body>
-    <h1>Face Ball</h1>
-    <p>Coming soon ...</p>
+    <div id="navbar"></div>
+    <div class="center-content page-container">
+
+        <div class="progress" id="loader">
+            <div class="indeterminate"></div>
+        </div>
+        <div style="position: relative" class="margin">
+            <div style="width: 640px; height: 480px;"></div>
+            <video id="inputVideo"
+                   onloadedmetadata="onPlay(this)"
+                   autoplay muted playsinline
+                   width="640px"
+                   height="480px"
+                   style="transform: rotateY(180deg);"></video>
+            <canvas id="overlay"
+                    width="640px"
+                    height="960px"
+                    style="border: 1px solid black;">
+            </canvas>
+        </div>
+
+        <div class="row side-by-side">
+
+            <!-- face_detector_selection_control -->
+            <div id="face_detector_selection_control" class="row input-field"
+                 style="margin-right: 20px;">
+                <select id="selectFaceDetector">
+                    <option value="ssd_mobilenetv1">SSD Mobilenet V1</option>
+                    <option value="tiny_face_detector">Tiny Face Detector
+                    </option>
+                </select>
+                <label for="selectFaceDetector">Select Face Detector</label>
+            </div>
+            <!-- face_detector_selection_control -->
+
+            <!-- fps_meter -->
+            <div id="fps_meter" class="row side-by-side">
+                <div>
+                    <label for="time">Time:</label>
+                    <input disabled value="-" id="time" type="text"
+                           class="bold">
+                    <label for="fps">Estimated Fps:</label>
+                    <input disabled value="-" id="fps" type="text" class="bold">
+                </div>
+            </div>
+            <!-- fps_meter -->
+
+        </div>
+
+
+        <!-- ssd_mobilenetv1_controls -->
+        <span id="ssd_mobilenetv1_controls">
+      <div class="row side-by-side">
+        <div class="row">
+          <label for="minConfidence">Min Confidence:</label>
+          <input disabled value="0.5" id="minConfidence" type="text"
+                 class="bold">
+        </div>
+        <button
+                class="waves-effect waves-light btn"
+                onclick="onDecreaseMinConfidence()"
+        >
+          <i class="material-icons left">-</i>
+        </button>
+        <button
+                class="waves-effect waves-light btn"
+                onclick="onIncreaseMinConfidence()"
+        >
+          <i class="material-icons left">+</i>
+        </button>
+      </div>
+    </span>
+        <!-- ssd_mobilenetv1_controls -->
+
+        <!-- tiny_face_detector_controls -->
+        <span id="tiny_face_detector_controls">
+      <div class="row side-by-side">
+        <div class="row input-field" style="margin-right: 20px;">
+          <select id="inputSize">
+            <option value="" disabled selected>Input Size:</option>
+            <option value="128">128 x 128</option>
+            <option value="160">160 x 160</option>
+            <option value="224">224 x 224</option>
+            <option value="320">320 x 320</option>
+            <option value="416">416 x 416</option>
+            <option value="512">512 x 512</option>
+            <option value="608">608 x 608</option>
+          </select>
+          <label>Input Size</label>
+        </div>
+        <div class="row">
+          <label for="scoreThreshold">Score Threshold:</label>
+          <input disabled value="0.5" id="scoreThreshold" type="text"
+                 class="bold">
+        </div>
+        <button class="waves-effect waves-light btn"
+                onclick="onDecreaseScoreThreshold()">
+          <i class="material-icons left">-</i>
+        </button>
+        <button class="waves-effect waves-light btn"
+                onclick="onIncreaseScoreThreshold()">
+          <i class="material-icons left">+</i>
+        </button>
+      </div>
+    </span>
+    </div>
+    <!-- tiny_face_detector_controls -->
+
+    <script>
+      let forwardTimes = [];
+
+      function updateTimeStats(timeInMs) {
+        forwardTimes = [timeInMs].concat(forwardTimes).slice(0, 30);
+        const avgTimeInMs = forwardTimes.reduce((total, t) => total + t) / forwardTimes.length;
+        $('#time').val(`${Math.round(avgTimeInMs)} ms`);
+        $('#fps').val(`${faceapi.utils.round(1000 / avgTimeInMs)}`)
+      }
+
+      function clamp(min, max, value) {
+        if (typeof min === 'number') {
+          if (value < min) {
+            return min;
+          }
+        }
+        if (typeof max === 'number') {
+          if (value > max) {
+            return max;
+          }
+        }
+        return value;
+      }
+
+      function negative(value) {
+        return -Math.abs(value);
+      }
+
+      function positive(value) {
+        return Math.abs(value);
+      }
+
+      class ClampedCoordinate {
+        constructor({x, xMin, xMax, y, yMin, yMax}) {
+          this._xMin = xMin;
+          this._xMax = xMax;
+          this._yMin = yMin;
+          this._yMax = yMax;
+          this._xInit = x;
+          this._yInit = y;
+          this.x = this._xInit;
+          this.y = this._yInit;
+        }
+
+        reset() {
+          this.x = this._xInit;
+          this.y = this._yInit;
+        }
+
+        get x() {
+          return this._x;
+        }
+
+        set x(value) {
+          this._x = clamp(this._xMin, this._xMax, value);
+        }
+
+        get y() {
+          return this._y;
+        }
+
+        set y(value) {
+          this._y = clamp(this._yMin, this._yMax, value);
+        }
+      }
+
+      class Game {
+        /**
+         * @param canvas HTMLCanvasElement
+         */
+        constructor(canvas) {
+          this.ctx = canvas.getContext("2d");
+          this.board = {
+            width: canvas.width,
+            height: canvas.height,
+          };
+          const maxAcceleration = 1;
+          const minAcceleration = -maxAcceleration;
+          const maxSpeed = 25;
+          const minSpeed = -maxSpeed;
+          const radius = 72;
+          this.ball = {
+            pos: new ClampedCoordinate({
+              x: this.board.width / 2,
+              xMin: 0,
+              xMax: this.board.width,
+              y: radius / 2,
+              yMin: 0,
+              yMax: this.board.height,
+            }),
+            acceleration: new ClampedCoordinate({
+              x: 0,
+              xMin: minAcceleration,
+              xMax: maxAcceleration,
+              y: 0,
+              yMin: minAcceleration,
+              yMax: maxAcceleration,
+            }),
+            speed: new ClampedCoordinate({
+              x: 0,
+              xMin: minSpeed,
+              xMax: maxSpeed,
+              y: 0,
+              yMin: minSpeed,
+              yMax: maxSpeed,
+            }),
+            radius,
+          };
+          this.playerHead = {
+            pos: {
+              x: 0,
+              y: 0,
+            },
+            speed: {
+              x: 0,
+              y: 0,
+            },
+            radius,
+          };
+          this._ballWithHeadCollision = new BallWithHeadCollision();
+        }
+
+        update() {
+          const gravity = 0.1;
+          this.ball.acceleration.y += gravity;
+          this.ball.speed.x += this.ball.acceleration.x;
+          this.ball.speed.y += this.ball.acceleration.y;
+          this.ball.pos.x += this.ball.speed.x;
+          this.ball.pos.y += this.ball.speed.y;
+          if (this.ball.pos.y >= this.board.height) {
+            this.resetBall();
+          }
+          if (this._isCollisionBallWithHead()) {
+            this._ballWithHeadCollision.calculate(this.ball, this.playerHead);
+          }
+          if (this._isCollisionBallWithLeftWall()) {
+            this.ball.speed.x = positive(this.ball.speed.x);
+            this.ball.acceleration.x = positive(this.ball.acceleration.x);
+          }
+          if (this._isCollisionBallWithRightWall()) {
+            this.ball.speed.x = negative(this.ball.speed.x);
+            this.ball.acceleration.x = negative(this.ball.acceleration.x);
+          }
+        }
+
+        draw() {
+          this.ctx.clearRect(0, 0, this.board.width, this.board.height);
+          this._drawCircle(this.ball.pos.x, this.ball.pos.y, this.ball.radius);
+          this.ctx.fillStyle = 'blue';
+          this.ctx.fill();
+
+          this.ctx.lineWidth = 5;
+          this.ctx.strokeStyle = 'magenta';
+          this._drawCircle(this.playerHead.pos.x, this.playerHead.pos.y, this.playerHead.radius);
+          this.ctx.stroke();
+        }
+
+        _drawCircle(centerX, centerY, radius) {
+          this.ctx.beginPath();
+          this.ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+        }
+
+        resetBall() {
+          this.ball.pos.reset();
+          this.ball.acceleration.reset();
+          this.ball.speed.reset();
+        }
+
+        _isCollisionBallWithHead() {
+          const {x: bx, y: by} = this.ball.pos;
+          const {x: px, y: py} = this.playerHead.pos;
+          const distance = faceapi.euclideanDistance([bx, by], [px, py]);
+          return this.ball.radius + this.playerHead.radius > distance;
+        }
+
+        _isCollisionBallWithLeftWall() {
+          return this.ball.pos.x - this.ball.radius < 0;
+        }
+
+        _isCollisionBallWithRightWall() {
+          return this.ball.pos.x + this.ball.radius > this.board.width;
+        }
+      }
+
+      class BallWithHeadCollision {
+        constructor() {
+          this._ball = new Victor(0, 0);
+          this._ballSpeed = new Victor(0, 0);
+          this._playerHead = new Victor(0, 0);
+          this._scalar = new Victor(0, 0);
+        }
+
+        calculate(ball, playerHead) {
+          this._ballSpeed.x = ball.speed.x;
+          this._ballSpeed.y = ball.speed.y;
+          const s = this._ballSpeed.length();
+          this._scalar.x = s;
+          this._scalar.y = s * 10; // add bounce
+          this._ball.x = ball.pos.x;
+          this._ball.y = ball.pos.y;
+          this._playerHead.x = playerHead.pos.x;
+          this._playerHead.y = playerHead.pos.y;
+          const dest = this._ball
+            .subtract(this._playerHead)
+            .normalize()
+            .multiply(this._scalar);
+          ball.speed.x = dest.x;
+          ball.speed.y = dest.y;
+        }
+      }
+
+      class FaceDetection {
+        /**
+         * @param videoElement HTMLVideoElement
+         */
+        constructor(videoElement) {
+          this._videoElement = videoElement;
+        }
+
+        start() {
+          this._run();
+        }
+
+        async _run() {
+          if (this._videoElement.paused || this._videoElement.ended || !isFaceDetectionModelLoaded()) {
+            return setTimeout(() => this._run());
+          }
+          const options = getFaceDetectorOptions();
+          const ts = Date.now();
+          const result = await faceapi.detectSingleFace(this._videoElement, options);
+          updateTimeStats(Date.now() - ts);
+          if (result) {
+            this.detection = result;
+          }
+          setTimeout(() => this._run())
+        }
+      }
+
+      async function onPlay() {
+        const canvas = $('#overlay').get(0);
+        const game = new Game(canvas);
+        const faceDetection = new FaceDetection($('#inputVideo').get(0));
+        faceDetection.start();
+
+        requestAnimationFrame(function draw() {
+          if (faceDetection.detection) {
+            const {x, y, width, height} = faceDetection.detection.box;
+            game.playerHead.pos.x = game.board.width - (x + width / 2);
+            game.playerHead.pos.y = y + (height + game.board.height) / 2;
+          }
+          game.update();
+          game.draw();
+          requestAnimationFrame(draw);
+        });
+      }
+
+      // In the original example, the function `changeFaceDetector` of common.js
+      // is used, which loads from the weights from the directory/URI of the
+      // development server used to run the examples. This is a copy of that
+      // function with the URI of the repository. Thereby, this example can be
+      // used/deployed without the development server.
+      async function changeFaceDetectorTo(detector) {
+        ['#ssd_mobilenetv1_controls', '#tiny_face_detector_controls']
+          .forEach(id => $(id).hide());
+
+        selectedFaceDetector = detector;
+        const faceDetectorSelect = $('#selectFaceDetector');
+        faceDetectorSelect.val(detector);
+        faceDetectorSelect.material_select();
+
+        const $loader = $('#loader');
+        $loader.show();
+        if (!isFaceDetectionModelLoaded()) {
+          await getCurrentFaceDetectionNet().load('https://cdn.rawgit.com/justadudewhohacks/face-api.js/0.22.2/weights/')
+        }
+
+        $(`#${detector}_controls`).show();
+        $loader.hide()
+      }
+
+      async function run() {
+        // load face detection model
+        await changeFaceDetectorTo(TINY_FACE_DETECTOR);
+        changeInputSize(128);
+
+        // try to access users webcam and stream the images
+        // to the video element
+        const stream = await navigator.mediaDevices.getUserMedia({video: {}});
+        const videoEl = $('#inputVideo').get(0);
+        videoEl.srcObject = stream
+      }
+
+      $(document).ready(function () {
+        // renderNavBar('#navbar', 'webcam_face_detection')
+        initFaceDetectionControls();
+        run()
+      })
+    </script>
 </body>
 </html>
