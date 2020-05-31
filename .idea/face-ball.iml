@@ -9,5 +9,6 @@
     <orderEntry type="library" name="commons" level="application" />
     <orderEntry type="library" name="faceDetectionControls" level="application" />
     <orderEntry type="library" name="styles" level="application" />
+    <orderEntry type="library" name="crafty" level="application" />
   </component>
 </module>
