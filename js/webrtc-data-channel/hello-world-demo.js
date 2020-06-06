@@ -5,7 +5,7 @@ import {rtcConfiguration} from "../rtc-configuration.js";
  * from/to master.
  * @returns {Promise<void>}
  */
-async function master(signalingTarget) {
+export async function master(signalingTarget) {
   const peerConnection = new RTCPeerConnection(rtcConfiguration);
   peerConnection.onicecandidate = event => {
     if (event.candidate) {
@@ -26,9 +26,16 @@ async function master(signalingTarget) {
   channel.onmessage = event => {
     alert(`received message from slave: "${event.data}"`);
   };
-  const sessionDescriptionInit = await peerConnection.createOffer();
-  await peerConnection.setLocalDescription(sessionDescriptionInit);
-  signalingTarget.sendOfferToSlave(sessionDescriptionInit);
+
+  async function createOffer() {
+    const sessionDescriptionInit = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(sessionDescriptionInit);
+    signalingTarget.sendOfferToSlave(sessionDescriptionInit);
+  }
+
+  signalingTarget.onSlaveIsOnline(createOffer);
+
+  await createOffer();
 }
 
 /**
@@ -36,7 +43,7 @@ async function master(signalingTarget) {
  * from/to master.
  * @returns {Promise<void>}
  */
-async function slave(signalingTarget) {
+export async function slave(signalingTarget) {
   const peerConnection = new RTCPeerConnection(rtcConfiguration);
   peerConnection.onicecandidate = event => {
     if (event.candidate) {
@@ -60,6 +67,8 @@ async function slave(signalingTarget) {
       channel.send('Hello Master');
     };
   };
+  // tell master that slave is online by sending an offer
+  signalingTarget.sendSlaveIsOnlineToMaster();
 }
 
 /**

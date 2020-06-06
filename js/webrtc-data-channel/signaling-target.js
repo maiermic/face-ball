@@ -32,6 +32,14 @@ export class SignalingTarget {
     throw Error('Not implemented');
   }
 
+  sendSlaveIsOnlineToMaster() {
+    throw Error('Not implemented');
+  }
+
+  onSlaveIsOnline(listener) {
+    throw Error('Not implemented');
+  }
+
   /**
    * @param sessionDescriptionInit {RTCSessionDescriptionInit}
    */

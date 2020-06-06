@@ -1,8 +1,18 @@
 import {SignalingTarget} from "./signaling-target.js";
 
+function doNothing() {
+}
+
 export class FirebaseSignalingTarget extends SignalingTarget {
   constructor() {
     super();
+    // these function may be overwritten, but do nothing by default
+    this._onIceCandidateForSlave = doNothing;
+    this._onIceCandidateForMaster = doNothing;
+    this._onOfferForSlave = doNothing;
+    this._onSlaveIsOnline = doNothing;
+    this._onAnswerForMaster = doNothing;
+
     this._database = firebase.database().ref();
     this._database.on('child_added', async data => {
       const msg = JSON.parse(data.val().message);
@@ -13,6 +23,8 @@ export class FirebaseSignalingTarget extends SignalingTarget {
         } else {
           this._onIceCandidateForMaster(msg.ice);
         }
+      } else if (sender === 'slave' && msg.isOnline) {
+        this._onSlaveIsOnline();
       } else if (msg.sdp.type === "offer") {
         this._onOfferForSlave(msg.sdp);
       } else if (msg.sdp.type === "answer") {
@@ -62,6 +74,14 @@ export class FirebaseSignalingTarget extends SignalingTarget {
 
   onOfferForSlave(listener) {
     this._onOfferForSlave = listener;
+  }
+
+  sendSlaveIsOnlineToMaster() {
+    this._sendMessageAsSlave({isOnline: true});
+  }
+
+  onSlaveIsOnline(listener) {
+    this._onSlaveIsOnline = listener;
   }
 
   sendAnswerToMaster(sessionDescription) {

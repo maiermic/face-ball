@@ -53,6 +53,14 @@ export class LocalSignalingTarget extends SignalingTarget {
       event => listener(event.detail));
   }
 
+  sendSlaveIsOnlineToMaster() {
+    // nothing to do
+  }
+
+  onSlaveIsOnline(listener) {
+    // nothing to do
+  }
+
   sendAnswerToMaster(sessionDescription) {
     this.eventTarget.dispatchEvent(
       new CustomEvent('answer-for-master', {
