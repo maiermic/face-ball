@@ -1,7 +1,6 @@
 import {SignalingTarget} from "./signaling-target.js";
-import {runHelloWorld} from "./hello-world-demo.js";
 
-class LocalSignalingTarget extends SignalingTarget {
+export class LocalSignalingTarget extends SignalingTarget {
   /**
    * @type EventTarget
    */
@@ -68,5 +67,3 @@ class LocalSignalingTarget extends SignalingTarget {
       event => listener(event.detail));
   }
 }
-
-runHelloWorld(new LocalSignalingTarget(document));

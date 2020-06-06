@@ -5,6 +5,10 @@
     <title>WebRTC Data Channel Demo</title>
 </head>
 <body>
-    <script src="js/webrtc-data-channel/local-signaling-target.js" type="module"></script>
+    <script type="module">
+      import {LocalSignalingTarget} from './js/webrtc-data-channel/local-signaling-target.js';
+      import {runHelloWorld} from './js/webrtc-data-channel/hello-world-demo.js';
+      runHelloWorld(new LocalSignalingTarget(document));
+    </script>
 </body>
 </html>
