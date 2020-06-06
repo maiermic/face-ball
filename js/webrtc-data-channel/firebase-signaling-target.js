@@ -4,7 +4,11 @@ function doNothing() {
 }
 
 export class FirebaseSignalingTarget extends SignalingTarget {
-  constructor() {
+  /**
+   * @param databasePath Use different database paths for different examples to
+   * avoid conflicts.
+   */
+  constructor(databasePath) {
     super();
     // these function may be overwritten, but do nothing by default
     this._onIceCandidateForSlave = doNothing;
@@ -13,7 +17,7 @@ export class FirebaseSignalingTarget extends SignalingTarget {
     this._onSlaveIsOnline = doNothing;
     this._onAnswerForMaster = doNothing;
 
-    this._database = firebase.database().ref();
+    this._database = firebase.database().ref(databasePath);
     this._database.on('child_added', async data => {
       const msg = JSON.parse(data.val().message);
       const sender = data.val().sender;
