@@ -10,5 +10,8 @@
     <orderEntry type="library" name="faceDetectionControls" level="application" />
     <orderEntry type="library" name="styles" level="application" />
     <orderEntry type="library" name="crafty" level="application" />
+    <orderEntry type="library" name="firebase" level="application" />
+    <orderEntry type="library" name="firebase-app" level="application" />
+    <orderEntry type="library" name="firebase-database" level="application" />
   </component>
 </module>
