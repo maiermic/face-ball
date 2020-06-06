@@ -8,6 +8,10 @@
     <script src="https://www.gstatic.com/firebasejs/7.15.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/7.15.0/firebase-database.js"></script>
     <script src="js/init-firebase.js"></script>
-    <script src="js/webrtc-data-channel/firebase-signaling-target.js" type="module"></script>
+    <script type="module">
+      import {FirebaseSignalingTarget} from './js/webrtc-data-channel/firebase-signaling-target.js';
+      import {runHelloWorld} from './js/webrtc-data-channel/hello-world-demo.js';
+      runHelloWorld(new FirebaseSignalingTarget());
+    </script>
 </body>
 </html>

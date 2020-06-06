@@ -1,7 +1,6 @@
 import {SignalingTarget} from "./signaling-target.js";
-import {runHelloWorld} from "./hello-world-demo.js";
 
-class FirebaseSignalingTarget extends SignalingTarget {
+export class FirebaseSignalingTarget extends SignalingTarget {
   constructor() {
     super();
     this._database = firebase.database().ref();
@@ -73,5 +72,3 @@ class FirebaseSignalingTarget extends SignalingTarget {
     this._onAnswerForMaster = listener;
   }
 }
-
-runHelloWorld(new FirebaseSignalingTarget());
