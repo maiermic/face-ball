@@ -3,13 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <title>Pong</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crafty/0.9.0/crafty.js" integrity="sha256-odk3zE80G3FHo6UIEnahqcKqJsxgIh/CwsfxX1PjV2w=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crafty/0.9.0/crafty.js"
+            integrity="sha256-odk3zE80G3FHo6UIEnahqcKqJsxgIh/CwsfxX1PjV2w="
+            crossorigin="anonymous"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
 </head>
 <body>
     <script type="module">
       import {Pong} from './js/pong/up-down.js';
 
-      const game = new Pong(480, 640);
+      const {clientWidth, clientHeight} = document.documentElement;
+      const game = new Pong(clientWidth, clientHeight);
       game.init();
     </script>
 </body>
