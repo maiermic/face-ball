@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pong WebRTC</title>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crafty/0.9.0/crafty.js"
+            integrity="sha256-odk3zE80G3FHo6UIEnahqcKqJsxgIh/CwsfxX1PjV2w="
+            crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.15.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.15.0/firebase-database.js"></script>
+    <script src="js/init-firebase.js"></script>
+    <script type="module">
+      import {FirebaseSignalingTarget} from './js/webrtc-data-channel/firebase-signaling-target.js';
+      import {rtcConfiguration} from './js/rtc-configuration.js';
+      import {Pong} from './js/pong/up-down.js';
+
+      /**
+       * @param signalingTarget {SignalingTarget} Used to receive/send signaling messages
+       * from/to master.
+       * @returns {Promise<void>}
+       */
+      async function master(signalingTarget) {
+        const peerConnection = new RTCPeerConnection(rtcConfiguration);
+        peerConnection.onicecandidate = event => {
+          if (event.candidate) {
+            signalingTarget.sendIceCandidateToSlave(event.candidate);
+          }
+        };
+        signalingTarget.onIceCandidateForMaster(candidate => {
+          peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+        });
+        signalingTarget.onAnswerForMaster(sessionDescription => {
+          peerConnection.setRemoteDescription(
+            new RTCSessionDescription(sessionDescription));
+        });
+        const channel = peerConnection.createDataChannel('data');
+        const game = new PongMaster(
+          function sendMessageToSlave(message) {
+            channel.send(JSON.stringify(message));
+          });
+        channel.onopen = _event => {
+          console.debug('data channel is open');
+          // channel.send('master is ready');
+          // game.start();
+        };
+        channel.onmessage = event => {
+          console.debug(`received message from slave: "${event.data}"`);
+          game.onSlaveMessage(JSON.parse(event.data));
+        };
+        channel.onclose = _event => {
+          console.debug('data channel is closed');
+        };
+
+        async function createOffer() {
+          const sessionDescriptionInit = await peerConnection.createOffer();
+          await peerConnection.setLocalDescription(sessionDescriptionInit);
+          signalingTarget.sendOfferToSlave(sessionDescriptionInit);
+        }
+
+        signalingTarget.onSlaveIsOnline(createOffer);
+
+        await createOffer();
+      }
+
+      class RemotePong extends Pong {
+        addUpsidePaddleControls() {
+          this._upsidePaddle.addComponent('Motion');
+        }
+
+        moveSlavePaddleLeft() {
+          this._upsidePaddle.vx = -this._paddleConfig.speed;
+        }
+
+        moveSlavePaddleRight() {
+          this._upsidePaddle.vx = this._paddleConfig.speed;
+        }
+
+        stopSlavePaddle() {
+          this._upsidePaddle.vx = 0;
+        }
+
+        getGameState() {
+          return {
+            slavePaddle: {
+              x: this._upsidePaddle.x,
+              y: this._upsidePaddle.y,
+            },
+            masterPaddle: {
+              x: this._downsidePaddle.x,
+              y: this._downsidePaddle.y,
+            },
+            ball: {
+              x: this._ball.x,
+              y: this._ball.y,
+            },
+            points: {
+              slave: this._leftPoints.points,
+              master: this._rightPoints.points,
+            },
+          }
+        }
+      }
+
+      class PongMaster {
+
+        constructor(sendMessageToSlave) {
+          this.sendMessageToSlave = sendMessageToSlave;
+        }
+
+        start() {
+          this._game = new RemotePong(480, 640);
+          this._game.onUpdateFrame = () => {
+            this.sendMessageToSlave({
+              type: 'game state',
+              state: this._game.getGameState(),
+            });
+          };
+          this._game.init();
+          this.sendMessageToSlave({
+            type: 'game state',
+            state: this._game.getGameState(),
+          });
+        }
+
+        onSlaveMessage(message) {
+          switch (message.type) {
+            case 'start game':
+              this.start();
+              break;
+            case 'move paddle left':
+              this._game.moveSlavePaddleLeft();
+              break;
+            case 'move paddle right':
+              this._game.moveSlavePaddleRight();
+              break;
+            case 'stop paddle':
+              this._game.stopSlavePaddle();
+              break;
+            default:
+              console.warn(`unknown message from slave: ${JSON.stringify(message)}`);
+          }
+        }
+      }
+
+      master(new FirebaseSignalingTarget('/pong_up-down'));
+    </script>
+</body>
+</html>
