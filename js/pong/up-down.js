@@ -113,8 +113,10 @@ export class Pong {
 
         game.onUpdateFrame();
       })
-      .onHit('Paddle', function () {
-        this.dY *= -1;
+      .onHit('Paddle', function (_, firstHit) {
+        if (firstHit) {
+          this.dY *= -1;
+        }
       })
   }
 
