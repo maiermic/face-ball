@@ -21,6 +21,7 @@ export class FirebaseSignalingTarget extends SignalingTarget {
     this._database.on('child_added', async data => {
       const msg = JSON.parse(data.val().message);
       const sender = data.val().sender;
+      console.debug('FirebaseSignalingTarget child_added', {sender, msg})
       if (msg.ice) {
         if (sender === 'master') {
           this._onIceCandidateForSlave(msg.ice);
