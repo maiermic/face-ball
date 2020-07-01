@@ -14,8 +14,8 @@ export class FacePong {
         y: boardHeight / 2,
       },
       radius: boardWidth / 20,
-      speed: 100,
-      acceleration: 1,
+      speed: 150,
+      acceleration: 3,
     }
     this._faceConfig = {
       radius: boardWidth * 0.15,
