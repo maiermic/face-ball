@@ -15,9 +15,11 @@ export class FacePong {
       },
       radius: boardWidth / 20,
       speed: 100,
+      acceleration: 1,
     }
     this._faceConfig = {
-      radius: boardWidth / 20,
+      radius: boardWidth * 0.15,
+      maxRadius: boardWidth * 0.15,
       lineWidth: 4,
     }
     this._videoConfig = {
@@ -113,9 +115,7 @@ export class FacePong {
   }
 
   addOpponentControls() {
-    this.opponentFace
-      .addComponent('Multiway')
-      .multiway(200, { A: 180, D: 0 })
+    this.opponentFace.addComponent('Multiway').multiway(200, { A: 180, D: 0 })
   }
 
   addPlayerControls() {
@@ -126,7 +126,10 @@ export class FacePong {
       .addComponent('FaceDetection')
       .bind('FaceDetection', detection => {
         const { x, y, width, height } = detection.absoluteBox
-        const radius = Math.max(width, height) / 2
+        const radius = Math.min(
+          this._faceConfig.maxRadius,
+          Math.max(width, height) / 2
+        )
         this.playerFace.circle({
           x: x + width / 2,
           y: y + height / 2,
@@ -143,11 +146,15 @@ export class FacePong {
         y: this._ballConfig.initialPosition.y,
       })
     this.ball.randomDirection = () => {
-      this.ball
-        .velocity()
+      const velocity = this.ball.velocity()
+      velocity
         .setValues(Crafty.math.randomInt(2, 5), Crafty.math.randomInt(2, 5))
         .normalize()
-        .scale(this._ballConfig.speed)
+      this.ball
+        .acceleration()
+        .setValues(velocity)
+        .scale(this._ballConfig.acceleration)
+      velocity.scale(this._ballConfig.speed)
     }
     this.ball.randomDirection()
     this.ball.bind('UpdateFrame', () => {
@@ -204,13 +211,16 @@ class BallWithHeadCollision {
 
   calculate(ball, playerHead) {
     const velocity = ball.velocity()
+    const acceleration = ball.acceleration()
     const speed = velocity.magnitude()
+    const accelerationFactor = acceleration.magnitude()
     velocity
       .setValues(ball.centerX, ball.centerY)
       .subtract(
         this._playerHead.setValues(playerHead.centerX, playerHead.centerY)
       )
       .normalize()
-      .scale(speed)
+    acceleration.setValues(velocity).scale(accelerationFactor)
+    velocity.scale(speed)
   }
 }
