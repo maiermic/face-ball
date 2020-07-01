@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Pong</title>
+    <script src="https://cdn.rawgit.com/justadudewhohacks/face-api.js/0.22.2/dist/face-api.min.js"></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/crafty/0.9.0/crafty.js"
+      integrity="sha256-odk3zE80G3FHo6UIEnahqcKqJsxgIh/CwsfxX1PjV2w="
+      crossorigin="anonymous"
+    ></script>
+    <style>
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+      }
+
+      #game {
+        margin: 0 auto 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game"></div>
+
+    <script type="module">
+      import { FacePong } from './js/face-pong/up-down.js'
+
+      async function main() {
+        await faceapi.nets.tinyFaceDetector.loadFromUri(
+          'https://cdn.rawgit.com/justadudewhohacks/face-api.js/0.22.2/weights/'
+        )
+
+        const { clientHeight } = document.documentElement
+        const game = new FacePong(640, clientHeight)
+        game.init(document.getElementById('game'))
+        await game.playerVideo.useUserMedia()
+      }
+
+      main()
+    </script>
+  </body>
+</html>

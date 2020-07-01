@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Face-Pong WebRTC</title>
+    <script src="https://cdn.rawgit.com/justadudewhohacks/face-api.js/0.22.2/dist/face-api.min.js"></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/crafty/0.9.0/crafty.js"
+      integrity="sha256-odk3zE80G3FHo6UIEnahqcKqJsxgIh/CwsfxX1PjV2w="
+      crossorigin="anonymous"
+    ></script>
+    <script src="https://www.gstatic.com/firebasejs/7.15.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.15.0/firebase-database.js"></script>
+    <style>
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+      }
+
+      #game {
+        margin: 0 auto 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game"></div>
+
+    <script src="js/init-firebase.js"></script>
+    <script type="module">
+      import { FirebaseSignalingTarget } from './js/webrtc-data-channel/firebase-signaling-target.js'
+      import { rtcConfiguration } from './js/rtc-configuration.js'
+      import { FacePong } from './js/face-pong/up-down.js'
+
+      /**
+       * @param {SignalingTarget} signalingTarget Used to receive/send signaling messages
+       * from/to master.
+       * @returns {Promise<void>}
+       */
+      export async function slave(signalingTarget) {
+        await faceapi.nets.tinyFaceDetector.loadFromUri(
+          'https://cdn.rawgit.com/justadudewhohacks/face-api.js/0.22.2/weights/'
+        )
+
+        const peerConnection = new RTCPeerConnection(rtcConfiguration)
+        peerConnection.onicecandidate = event => {
+          if (event.candidate) {
+            signalingTarget.sendIceCandidateToMaster(event.candidate)
+          }
+        }
+        signalingTarget.onIceCandidateForSlave(candidate => {
+          peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
+        })
+        signalingTarget.onOfferForSlave(async offer => {
+          await peerConnection.setRemoteDescription(
+            new RTCSessionDescription(offer)
+          )
+          const answer = await peerConnection.createAnswer()
+          await peerConnection.setLocalDescription(answer)
+          signalingTarget.sendAnswerToMaster(peerConnection.localDescription)
+        })
+        peerConnection.ondatachannel = event => {
+          const channel = event.channel
+          const game = new PongClient(function sendMessageToMaster(message) {
+            channel.send(JSON.stringify(message))
+          })
+
+          channel.onopen = _event => {
+            console.debug('data channel is open')
+            game.start()
+          }
+          channel.onmessage = event => {
+            console.debug(`received message from master: "${event.data}"`)
+            game.onMasterMessage(JSON.parse(event.data))
+          }
+          channel.onclose = _event => {
+            console.debug('data channel is closed')
+          }
+        }
+        // tell master that slave is online by sending an offer
+        signalingTarget.sendSlaveIsOnlineToMaster()
+      }
+
+      class RemotePong extends FacePong {
+        addPlayerControls() {
+          // do nothing
+        }
+
+        addOpponentControls() {
+          // this.opponentVideo.addComponent('FaceDetection')
+        }
+
+        addLogic() {
+          // do nothing
+        }
+
+        setState(state) {
+          this.opponentFace.circle(state.opponentFace)
+          this.playerFace.circle(state.playerFace)
+          this.ball.attr(state.ball)
+          this.opponentScore.text(state.points.client + ' Points')
+          this.playerScore.text(state.points.host + ' Points')
+        }
+      }
+
+      class PongClient {
+        constructor(sendMessageToMaster) {
+          this.sendMessageToMaster = sendMessageToMaster
+        }
+
+        async start() {
+          this._game = new RemotePong(640, 480 * 2)
+          this._game.init(document.getElementById('game'))
+          this.sendMessageToMaster({ type: 'start game' })
+          await this._game.opponentVideo.useUserMedia()
+          this._game.opponentVideo.bind('FaceDetection', detection => {
+            const { x, y, width, height } = detection.absoluteBox
+            const radius = Math.max(width, height) / 2
+            this.sendMessageToMaster({
+              type: 'face detection',
+              face: {
+                x: x + width / 2,
+                y: y + height / 2,
+                radius: radius,
+              },
+            })
+          })
+        }
+
+        onMasterMessage(message) {
+          switch (message.type) {
+            case 'game state':
+              this._game.setState(message.state)
+              break
+            default:
+              console.warn(
+                `unknown message from master: ${JSON.stringify(message)}`
+              )
+          }
+        }
+      }
+
+      slave(new FirebaseSignalingTarget('/face-pong_up-down'))
+    </script>
+  </body>
+</html>

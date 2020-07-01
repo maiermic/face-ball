@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebRTC Data Channel Demo</title>
+</head>
+<body>
+    <script src="https://www.gstatic.com/firebasejs/7.15.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.15.0/firebase-database.js"></script>
+    <script src="js/init-firebase.js"></script>
+    <script type="module">
+      import {FirebaseSignalingTarget} from './js/webrtc-data-channel/firebase-signaling-target.js';
+      import {master} from './js/webrtc-data-channel/hello-world-demo.js';
+      master(new FirebaseSignalingTarget('/webrtc-data-channel_firebase'));
+    </script>
+</body>
+</html>
