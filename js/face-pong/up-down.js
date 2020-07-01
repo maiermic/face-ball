@@ -18,7 +18,8 @@ export class FacePong {
       acceleration: 1,
     }
     this._faceConfig = {
-      radius: boardWidth / 20,
+      radius: boardWidth * 0.15,
+      maxRadius: boardWidth * 0.15,
       lineWidth: 4,
     }
     this._videoConfig = {
@@ -125,7 +126,10 @@ export class FacePong {
       .addComponent('FaceDetection')
       .bind('FaceDetection', detection => {
         const { x, y, width, height } = detection.absoluteBox
-        const radius = Math.max(width, height) / 2
+        const radius = Math.min(
+          this._faceConfig.maxRadius,
+          Math.max(width, height) / 2
+        )
         this.playerFace.circle({
           x: x + width / 2,
           y: y + height / 2,

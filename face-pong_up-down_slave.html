@@ -115,7 +115,10 @@
           await this._game.opponentVideo.useUserMedia()
           this._game.opponentVideo.bind('FaceDetection', detection => {
             const { x, y, width, height } = detection.absoluteBox
-            const radius = Math.max(width, height) / 2
+            const radius = Math.min(
+              this._game._faceConfig.maxRadius,
+              Math.max(width, height) / 2
+            )
             this.sendMessageToMaster({
               type: 'face detection',
               face: {
