@@ -12,10 +12,10 @@ export class FirebaseSignalingTarget extends SignalingTarget {
     super();
     // these function may be overwritten, but do nothing by default
     this._onIceCandidateForSlave = doNothing;
-    this._onIceCandidateForMaster = doNothing;
+    this._onIceCandidateForHost = doNothing;
     this._onOfferForSlave = doNothing;
     this._onSlaveIsOnline = doNothing;
-    this._onAnswerForMaster = doNothing;
+    this._onAnswerForHost = doNothing;
 
     this._database = firebase.database().ref(databasePath);
     this._database.on('child_added', async data => {
@@ -23,17 +23,17 @@ export class FirebaseSignalingTarget extends SignalingTarget {
       const sender = data.val().sender;
       console.debug('FirebaseSignalingTarget child_added', {sender, msg})
       if (msg.ice) {
-        if (sender === 'master') {
+        if (sender === 'host') {
           this._onIceCandidateForSlave(msg.ice);
         } else {
-          this._onIceCandidateForMaster(msg.ice);
+          this._onIceCandidateForHost(msg.ice);
         }
       } else if (sender === 'slave' && msg.isOnline) {
         this._onSlaveIsOnline();
       } else if (msg.sdp.type === "offer") {
         this._onOfferForSlave(msg.sdp);
       } else if (msg.sdp.type === "answer") {
-        this._onAnswerForMaster(msg.sdp);
+        this._onAnswerForHost(msg.sdp);
       } else {
         console.warn('unhandled SDP type', msg.sdp.type);
       }
@@ -49,8 +49,8 @@ export class FirebaseSignalingTarget extends SignalingTarget {
       .remove();
   }
 
-  _sendMessageAsMaster(message) {
-    this._sendMessage('master', message);
+  _sendMessageAsHost(message) {
+    this._sendMessage('host', message);
   }
 
   _sendMessageAsSlave(message) {
@@ -58,30 +58,30 @@ export class FirebaseSignalingTarget extends SignalingTarget {
   }
 
   sendIceCandidateToSlave(candidate) {
-    this._sendMessageAsMaster({ice: candidate});
+    this._sendMessageAsHost({ice: candidate});
   }
 
   onIceCandidateForSlave(listener) {
     this._onIceCandidateForSlave = listener;
   }
 
-  sendIceCandidateToMaster(candidate) {
+  sendIceCandidateToHost(candidate) {
     this._sendMessageAsSlave({ice: candidate});
   }
 
-  onIceCandidateForMaster(listener) {
-    this._onIceCandidateForMaster = listener;
+  onIceCandidateForHost(listener) {
+    this._onIceCandidateForHost = listener;
   }
 
   sendOfferToSlave(sessionDescription) {
-    this._sendMessageAsMaster({sdp: sessionDescription});
+    this._sendMessageAsHost({sdp: sessionDescription});
   }
 
   onOfferForSlave(listener) {
     this._onOfferForSlave = listener;
   }
 
-  sendSlaveIsOnlineToMaster() {
+  sendSlaveIsOnlineToHost() {
     this._sendMessageAsSlave({isOnline: true});
   }
 
@@ -89,11 +89,11 @@ export class FirebaseSignalingTarget extends SignalingTarget {
     this._onSlaveIsOnline = listener;
   }
 
-  sendAnswerToMaster(sessionDescription) {
+  sendAnswerToHost(sessionDescription) {
     this._sendMessageAsSlave({sdp: sessionDescription});
   }
 
-  onAnswerForMaster(listener) {
-    this._onAnswerForMaster = listener;
+  onAnswerForHost(listener) {
+    this._onAnswerForHost = listener;
   }
 }

@@ -27,16 +27,16 @@ export class LocalSignalingTarget extends SignalingTarget {
       event => listener(event.detail));
   }
 
-  sendIceCandidateToMaster(candidate) {
+  sendIceCandidateToHost(candidate) {
     this.eventTarget.dispatchEvent(
-      new CustomEvent('ice-candidate-for-master', {
+      new CustomEvent('ice-candidate-for-host', {
         detail: candidate,
       }));
   }
 
-  onIceCandidateForMaster(listener) {
+  onIceCandidateForHost(listener) {
     this.eventTarget.addEventListener(
-      'ice-candidate-for-master',
+      'ice-candidate-for-host',
       event => listener(event.detail));
   }
 
@@ -53,7 +53,7 @@ export class LocalSignalingTarget extends SignalingTarget {
       event => listener(event.detail));
   }
 
-  sendSlaveIsOnlineToMaster() {
+  sendSlaveIsOnlineToHost() {
     // nothing to do
   }
 
@@ -61,17 +61,17 @@ export class LocalSignalingTarget extends SignalingTarget {
     // nothing to do
   }
 
-  sendAnswerToMaster(sessionDescription) {
+  sendAnswerToHost(sessionDescription) {
     this.eventTarget.dispatchEvent(
-      new CustomEvent('answer-for-master', {
+      new CustomEvent('answer-for-host', {
         detail: sessionDescription,
       }));
 
   }
 
-  onAnswerForMaster(listener) {
+  onAnswerForHost(listener) {
     this.eventTarget.addEventListener(
-      'answer-for-master',
+      'answer-for-host',
       event => listener(event.detail));
   }
 }

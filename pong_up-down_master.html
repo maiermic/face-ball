@@ -18,31 +18,31 @@
 
       /**
        * @param signalingTarget {SignalingTarget} Used to receive/send signaling messages
-       * from/to master.
+       * from/to host.
        * @returns {Promise<void>}
        */
-      async function master(signalingTarget) {
+      async function host(signalingTarget) {
         const peerConnection = new RTCPeerConnection(rtcConfiguration);
         peerConnection.onicecandidate = event => {
           if (event.candidate) {
             signalingTarget.sendIceCandidateToSlave(event.candidate);
           }
         };
-        signalingTarget.onIceCandidateForMaster(candidate => {
+        signalingTarget.onIceCandidateForHost(candidate => {
           peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
         });
-        signalingTarget.onAnswerForMaster(sessionDescription => {
+        signalingTarget.onAnswerForHost(sessionDescription => {
           peerConnection.setRemoteDescription(
             new RTCSessionDescription(sessionDescription));
         });
         const channel = peerConnection.createDataChannel('data');
-        const game = new PongMaster(
+        const game = new PongHost(
           function sendMessageToSlave(message) {
             channel.send(JSON.stringify(message));
           });
         channel.onopen = _event => {
           console.debug('data channel is open');
-          // channel.send('master is ready');
+          // channel.send('host is ready');
           // game.start();
         };
         channel.onmessage = event => {
@@ -87,7 +87,7 @@
               x: this._upsidePaddle.x,
               y: this._upsidePaddle.y,
             },
-            masterPaddle: {
+            hostPaddle: {
               x: this._downsidePaddle.x,
               y: this._downsidePaddle.y,
             },
@@ -97,13 +97,13 @@
             },
             points: {
               slave: this._leftPoints.points,
-              master: this._rightPoints.points,
+              host: this._rightPoints.points,
             },
           }
         }
       }
 
-      class PongMaster {
+      class PongHost {
 
         constructor(sendMessageToSlave) {
           this.sendMessageToSlave = sendMessageToSlave;
@@ -144,7 +144,7 @@
         }
       }
 
-      master(new FirebaseSignalingTarget('/pong_up-down'));
+      host(new FirebaseSignalingTarget('/pong_up-down'));
     </script>
 </body>
 </html>

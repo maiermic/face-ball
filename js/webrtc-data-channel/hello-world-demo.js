@@ -2,20 +2,20 @@ import {rtcConfiguration} from "../rtc-configuration.js";
 
 /**
  * @param signalingTarget {SignalingTarget} Used to receive/send signaling messages
- * from/to master.
+ * from/to host.
  * @returns {Promise<void>}
  */
-export async function master(signalingTarget) {
+export async function host(signalingTarget) {
   const peerConnection = new RTCPeerConnection(rtcConfiguration);
   peerConnection.onicecandidate = event => {
     if (event.candidate) {
       signalingTarget.sendIceCandidateToSlave(event.candidate);
     }
   };
-  signalingTarget.onIceCandidateForMaster(candidate => {
+  signalingTarget.onIceCandidateForHost(candidate => {
     peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
   });
-  signalingTarget.onAnswerForMaster(sessionDescription => {
+  signalingTarget.onAnswerForHost(sessionDescription => {
     peerConnection.setRemoteDescription(
       new RTCSessionDescription(sessionDescription));
   });
@@ -40,14 +40,14 @@ export async function master(signalingTarget) {
 
 /**
  * @param {SignalingTarget} signalingTarget Used to receive/send signaling messages
- * from/to master.
+ * from/to host.
  * @returns {Promise<void>}
  */
 export async function slave(signalingTarget) {
   const peerConnection = new RTCPeerConnection(rtcConfiguration);
   peerConnection.onicecandidate = event => {
     if (event.candidate) {
-      signalingTarget.sendIceCandidateToMaster(event.candidate);
+      signalingTarget.sendIceCandidateToHost(event.candidate);
     }
   };
   signalingTarget.onIceCandidateForSlave(candidate => {
@@ -58,26 +58,26 @@ export async function slave(signalingTarget) {
       new RTCSessionDescription(offer));
     const answer = await peerConnection.createAnswer();
     await peerConnection.setLocalDescription(answer);
-    signalingTarget.sendAnswerToMaster(peerConnection.localDescription);
+    signalingTarget.sendAnswerToHost(peerConnection.localDescription);
   });
   peerConnection.ondatachannel = event => {
     const channel = event.channel;
     channel.onmessage = event => {
-      alert(`received message from master: "${event.data}"`);
-      channel.send('Hello Master');
+      alert(`received message from host: "${event.data}"`);
+      channel.send('Hello Host');
     };
   };
-  // tell master that slave is online by sending an offer
-  signalingTarget.sendSlaveIsOnlineToMaster();
+  // tell host that slave is online by sending an offer
+  signalingTarget.sendSlaveIsOnlineToHost();
 }
 
 /**
  * @param signalingTarget {SignalingTarget} Used to exchange signaling messages
- * between master and slave.
+ * between host and slave.
  */
 export function runHelloWorld(signalingTarget) {
   // noinspection JSIgnoredPromiseFromCall
-  slave(signalingTarget); // start listening for call from master
+  slave(signalingTarget); // start listening for call from host
   // noinspection JSIgnoredPromiseFromCall
-  master(signalingTarget); // call slave (initiated by creating an offer)
+  host(signalingTarget); // call slave (initiated by creating an offer)
 }

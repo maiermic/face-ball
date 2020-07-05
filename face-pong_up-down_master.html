@@ -34,10 +34,10 @@
 
       /**
        * @param signalingTarget {SignalingTarget} Used to receive/send signaling messages
-       * from/to master.
+       * from/to host.
        * @returns {Promise<void>}
        */
-      async function master(signalingTarget) {
+      async function host(signalingTarget) {
         await faceapi.nets.tinyFaceDetector.loadFromUri(
           'https://cdn.rawgit.com/justadudewhohacks/face-api.js/0.22.2/weights/'
         )
@@ -48,10 +48,10 @@
             signalingTarget.sendIceCandidateToSlave(event.candidate)
           }
         }
-        signalingTarget.onIceCandidateForMaster(candidate => {
+        signalingTarget.onIceCandidateForHost(candidate => {
           peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
         })
-        signalingTarget.onAnswerForMaster(sessionDescription => {
+        signalingTarget.onAnswerForHost(sessionDescription => {
           peerConnection.setRemoteDescription(
             new RTCSessionDescription(sessionDescription)
           )
@@ -62,7 +62,7 @@
         })
         channel.onopen = _event => {
           console.debug('data channel is open')
-          // channel.send('master is ready');
+          // channel.send('host is ready');
           // game.start();
         }
         channel.onmessage = event => {
@@ -154,7 +154,7 @@
         }
       }
 
-      master(new FirebaseSignalingTarget('/face-pong_up-down'))
+      host(new FirebaseSignalingTarget('/face-pong_up-down'))
     </script>
   </body>
 </html>

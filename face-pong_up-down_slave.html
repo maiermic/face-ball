@@ -34,7 +34,7 @@
 
       /**
        * @param {SignalingTarget} signalingTarget Used to receive/send signaling messages
-       * from/to master.
+       * from/to host.
        * @returns {Promise<void>}
        */
       export async function slave(signalingTarget) {
@@ -45,7 +45,7 @@
         const peerConnection = new RTCPeerConnection(rtcConfiguration)
         peerConnection.onicecandidate = event => {
           if (event.candidate) {
-            signalingTarget.sendIceCandidateToMaster(event.candidate)
+            signalingTarget.sendIceCandidateToHost(event.candidate)
           }
         }
         signalingTarget.onIceCandidateForSlave(candidate => {
@@ -57,11 +57,11 @@
           )
           const answer = await peerConnection.createAnswer()
           await peerConnection.setLocalDescription(answer)
-          signalingTarget.sendAnswerToMaster(peerConnection.localDescription)
+          signalingTarget.sendAnswerToHost(peerConnection.localDescription)
         })
         peerConnection.ondatachannel = event => {
           const channel = event.channel
-          const game = new PongClient(function sendMessageToMaster(message) {
+          const game = new PongClient(function sendMessageToHost(message) {
             channel.send(JSON.stringify(message))
           })
 
@@ -70,15 +70,15 @@
             game.start()
           }
           channel.onmessage = event => {
-            console.debug(`received message from master: "${event.data}"`)
-            game.onMasterMessage(JSON.parse(event.data))
+            console.debug(`received message from host: "${event.data}"`)
+            game.onHostMessage(JSON.parse(event.data))
           }
           channel.onclose = _event => {
             console.debug('data channel is closed')
           }
         }
-        // tell master that slave is online by sending an offer
-        signalingTarget.sendSlaveIsOnlineToMaster()
+        // tell host that slave is online by sending an offer
+        signalingTarget.sendSlaveIsOnlineToHost()
       }
 
       class RemotePong extends FacePong {
@@ -104,14 +104,14 @@
       }
 
       class PongClient {
-        constructor(sendMessageToMaster) {
-          this.sendMessageToMaster = sendMessageToMaster
+        constructor(sendMessageToHost) {
+          this.sendMessageToHost = sendMessageToHost
         }
 
         async start() {
           this._game = new RemotePong(640, 480 * 2)
           this._game.init(document.getElementById('game'))
-          this.sendMessageToMaster({ type: 'start game' })
+          this.sendMessageToHost({ type: 'start game' })
           await this._game.opponentVideo.useUserMedia()
           this._game.opponentVideo.bind('FaceDetection', detection => {
             const { x, y, width, height } = detection.absoluteBox
@@ -119,7 +119,7 @@
               this._game._faceConfig.maxRadius,
               Math.max(width, height) / 2
             )
-            this.sendMessageToMaster({
+            this.sendMessageToHost({
               type: 'face detection',
               face: {
                 x: x + width / 2,
@@ -130,14 +130,14 @@
           })
         }
 
-        onMasterMessage(message) {
+        onHostMessage(message) {
           switch (message.type) {
             case 'game state':
               this._game.setState(message.state)
               break
             default:
               console.warn(
-                `unknown message from master: ${JSON.stringify(message)}`
+                `unknown message from host: ${JSON.stringify(message)}`
               )
           }
         }

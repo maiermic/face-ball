@@ -18,14 +18,14 @@
 
       /**
        * @param {SignalingTarget} signalingTarget Used to receive/send signaling messages
-       * from/to master.
+       * from/to host.
        * @returns {Promise<void>}
        */
       export async function slave(signalingTarget) {
         const peerConnection = new RTCPeerConnection(rtcConfiguration);
         peerConnection.onicecandidate = event => {
           if (event.candidate) {
-            signalingTarget.sendIceCandidateToMaster(event.candidate);
+            signalingTarget.sendIceCandidateToHost(event.candidate);
           }
         };
         signalingTarget.onIceCandidateForSlave(candidate => {
@@ -36,12 +36,12 @@
             new RTCSessionDescription(offer));
           const answer = await peerConnection.createAnswer();
           await peerConnection.setLocalDescription(answer);
-          signalingTarget.sendAnswerToMaster(peerConnection.localDescription);
+          signalingTarget.sendAnswerToHost(peerConnection.localDescription);
         });
         peerConnection.ondatachannel = event => {
           const channel = event.channel;
           const game = new PongSlave(
-            function sendMessageToMaster(message) {
+            function sendMessageToHost(message) {
               channel.send(JSON.stringify(message));
             });
 
@@ -50,15 +50,15 @@
             game.start();
           };
           channel.onmessage = event => {
-            console.debug(`received message from master: "${event.data}"`);
-            game.onMasterMessage(JSON.parse(event.data));
+            console.debug(`received message from host: "${event.data}"`);
+            game.onHostMessage(JSON.parse(event.data));
           };
           channel.onclose = _event => {
             console.debug('data channel is closed');
           };
         };
-        // tell master that slave is online by sending an offer
-        signalingTarget.sendSlaveIsOnlineToMaster();
+        // tell host that slave is online by sending an offer
+        signalingTarget.sendSlaveIsOnlineToHost();
       }
 
       class RemotePong extends Pong {
@@ -72,17 +72,17 @@
 
         setState(state) {
           Object.assign(this._upsidePaddle, state.slavePaddle);
-          Object.assign(this._downsidePaddle, state.masterPaddle);
+          Object.assign(this._downsidePaddle, state.hostPaddle);
           Object.assign(this._ball, state.ball);
           this._leftPoints.text(state.points.slave + ' Points');
-          this._rightPoints.text(state.points.master + ' Points');
+          this._rightPoints.text(state.points.host + ' Points');
         }
       }
 
 
       class PongSlave {
-        constructor(sendMessageToMaster) {
-          this.sendMessageToMaster = sendMessageToMaster;
+        constructor(sendMessageToHost) {
+          this.sendMessageToHost = sendMessageToHost;
         }
 
         start() {
@@ -91,10 +91,10 @@
           document.addEventListener('keydown', event => {
             switch (event.key) {
               case 'ArrowLeft':
-                this.sendMessageToMaster({type: 'move paddle left'});
+                this.sendMessageToHost({type: 'move paddle left'});
                 break;
               case 'ArrowRight':
-                this.sendMessageToMaster({type: 'move paddle right'});
+                this.sendMessageToHost({type: 'move paddle right'});
                 break;
             }
           });
@@ -102,20 +102,20 @@
             switch (event.key) {
               case 'ArrowLeft':
               case 'ArrowRight':
-                this.sendMessageToMaster({type: 'stop paddle'});
+                this.sendMessageToHost({type: 'stop paddle'});
                 break;
             }
           });
-          this.sendMessageToMaster({type: 'start game'});
+          this.sendMessageToHost({type: 'start game'});
         }
 
-        onMasterMessage(message) {
+        onHostMessage(message) {
           switch (message.type) {
             case 'game state':
               this._game.setState(message.state);
               break;
             default:
-              console.warn(`unknown message from master: ${JSON.stringify(message)}`);
+              console.warn(`unknown message from host: ${JSON.stringify(message)}`);
           }
         }
       }
