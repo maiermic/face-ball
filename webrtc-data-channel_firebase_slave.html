@@ -10,8 +10,8 @@
     <script src="js/init-firebase.js"></script>
     <script type="module">
       import {FirebaseSignalingTarget} from './js/webrtc-data-channel/firebase-signaling-target.js';
-      import {slave} from './js/webrtc-data-channel/hello-world-demo.js';
-      slave(new FirebaseSignalingTarget('/webrtc-data-channel_firebase'));
+      import {client} from './js/webrtc-data-channel/hello-world-demo.js';
+      client(new FirebaseSignalingTarget('/webrtc-data-channel_firebase'));
     </script>
 </body>
 </html>

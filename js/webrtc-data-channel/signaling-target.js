@@ -2,11 +2,11 @@ export class SignalingTarget {
   /**
    * @param candidateInit {RTCIceCandidateInit}
    */
-  sendIceCandidateToSlave(candidateInit) {
+  sendIceCandidateToClient(candidateInit) {
     throw Error('Not implemented');
   }
 
-  onIceCandidateForSlave(listener) {
+  onIceCandidateForClient(listener) {
     throw Error('Not implemented');
   }
 
@@ -24,19 +24,19 @@ export class SignalingTarget {
   /**
    * @param sessionDescriptionInit {RTCSessionDescriptionInit}
    */
-  sendOfferToSlave(sessionDescriptionInit) {
+  sendOfferToClient(sessionDescriptionInit) {
     throw Error('Not implemented');
   }
 
-  onOfferForSlave(listener) {
+  onOfferForClient(listener) {
     throw Error('Not implemented');
   }
 
-  sendSlaveIsOnlineToHost() {
+  sendClientIsOnlineToHost() {
     throw Error('Not implemented');
   }
 
-  onSlaveIsOnline(listener) {
+  onClientIsOnline(listener) {
     throw Error('Not implemented');
   }
 

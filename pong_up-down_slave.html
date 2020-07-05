@@ -21,17 +21,17 @@
        * from/to host.
        * @returns {Promise<void>}
        */
-      export async function slave(signalingTarget) {
+      export async function client(signalingTarget) {
         const peerConnection = new RTCPeerConnection(rtcConfiguration);
         peerConnection.onicecandidate = event => {
           if (event.candidate) {
             signalingTarget.sendIceCandidateToHost(event.candidate);
           }
         };
-        signalingTarget.onIceCandidateForSlave(candidate => {
+        signalingTarget.onIceCandidateForClient(candidate => {
           peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
         });
-        signalingTarget.onOfferForSlave(async offer => {
+        signalingTarget.onOfferForClient(async offer => {
           await peerConnection.setRemoteDescription(
             new RTCSessionDescription(offer));
           const answer = await peerConnection.createAnswer();
@@ -40,7 +40,7 @@
         });
         peerConnection.ondatachannel = event => {
           const channel = event.channel;
-          const game = new PongSlave(
+          const game = new PongClient(
             function sendMessageToHost(message) {
               channel.send(JSON.stringify(message));
             });
@@ -57,8 +57,8 @@
             console.debug('data channel is closed');
           };
         };
-        // tell host that slave is online by sending an offer
-        signalingTarget.sendSlaveIsOnlineToHost();
+        // tell host that client is online by sending an offer
+        signalingTarget.sendClientIsOnlineToHost();
       }
 
       class RemotePong extends Pong {
@@ -71,16 +71,16 @@
         }
 
         setState(state) {
-          Object.assign(this._upsidePaddle, state.slavePaddle);
+          Object.assign(this._upsidePaddle, state.clientPaddle);
           Object.assign(this._downsidePaddle, state.hostPaddle);
           Object.assign(this._ball, state.ball);
-          this._leftPoints.text(state.points.slave + ' Points');
+          this._leftPoints.text(state.points.client + ' Points');
           this._rightPoints.text(state.points.host + ' Points');
         }
       }
 
 
-      class PongSlave {
+      class PongClient {
         constructor(sendMessageToHost) {
           this.sendMessageToHost = sendMessageToHost;
         }
@@ -120,7 +120,7 @@
         }
       }
 
-      slave(new FirebaseSignalingTarget('/pong_up-down'));
+      client(new FirebaseSignalingTarget('/pong_up-down'));
     </script>
 </body>
 </html>

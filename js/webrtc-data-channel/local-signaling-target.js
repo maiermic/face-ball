@@ -14,16 +14,16 @@ export class LocalSignalingTarget extends SignalingTarget {
     this.eventTarget = eventTarget;
   }
 
-  sendIceCandidateToSlave(candidate) {
+  sendIceCandidateToClient(candidate) {
     this.eventTarget.dispatchEvent(
-      new CustomEvent('ice-candidate-for-slave', {
+      new CustomEvent('ice-candidate-for-client', {
         detail: candidate,
       }));
   }
 
-  onIceCandidateForSlave(listener) {
+  onIceCandidateForClient(listener) {
     this.eventTarget.addEventListener(
-      'ice-candidate-for-slave',
+      'ice-candidate-for-client',
       event => listener(event.detail));
   }
 
@@ -40,24 +40,24 @@ export class LocalSignalingTarget extends SignalingTarget {
       event => listener(event.detail));
   }
 
-  sendOfferToSlave(sessionDescription) {
+  sendOfferToClient(sessionDescription) {
     this.eventTarget.dispatchEvent(
-      new CustomEvent('offer-for-slave', {
+      new CustomEvent('offer-for-client', {
         detail: sessionDescription,
       }));
   }
 
-  onOfferForSlave(listener) {
+  onOfferForClient(listener) {
     this.eventTarget.addEventListener(
-      'offer-for-slave',
+      'offer-for-client',
       event => listener(event.detail));
   }
 
-  sendSlaveIsOnlineToHost() {
+  sendClientIsOnlineToHost() {
     // nothing to do
   }
 
-  onSlaveIsOnline(listener) {
+  onClientIsOnline(listener) {
     // nothing to do
   }
 

@@ -11,10 +11,10 @@ export class FirebaseSignalingTarget extends SignalingTarget {
   constructor(databasePath) {
     super();
     // these function may be overwritten, but do nothing by default
-    this._onIceCandidateForSlave = doNothing;
+    this._onIceCandidateForClient = doNothing;
     this._onIceCandidateForHost = doNothing;
-    this._onOfferForSlave = doNothing;
-    this._onSlaveIsOnline = doNothing;
+    this._onOfferForClient = doNothing;
+    this._onClientIsOnline = doNothing;
     this._onAnswerForHost = doNothing;
 
     this._database = firebase.database().ref(databasePath);
@@ -24,14 +24,14 @@ export class FirebaseSignalingTarget extends SignalingTarget {
       console.debug('FirebaseSignalingTarget child_added', {sender, msg})
       if (msg.ice) {
         if (sender === 'host') {
-          this._onIceCandidateForSlave(msg.ice);
+          this._onIceCandidateForClient(msg.ice);
         } else {
           this._onIceCandidateForHost(msg.ice);
         }
-      } else if (sender === 'slave' && msg.isOnline) {
-        this._onSlaveIsOnline();
+      } else if (sender === 'client' && msg.isOnline) {
+        this._onClientIsOnline();
       } else if (msg.sdp.type === "offer") {
-        this._onOfferForSlave(msg.sdp);
+        this._onOfferForClient(msg.sdp);
       } else if (msg.sdp.type === "answer") {
         this._onAnswerForHost(msg.sdp);
       } else {
@@ -53,44 +53,44 @@ export class FirebaseSignalingTarget extends SignalingTarget {
     this._sendMessage('host', message);
   }
 
-  _sendMessageAsSlave(message) {
-    this._sendMessage('slave', message);
+  _sendMessageAsClient(message) {
+    this._sendMessage('client', message);
   }
 
-  sendIceCandidateToSlave(candidate) {
+  sendIceCandidateToClient(candidate) {
     this._sendMessageAsHost({ice: candidate});
   }
 
-  onIceCandidateForSlave(listener) {
-    this._onIceCandidateForSlave = listener;
+  onIceCandidateForClient(listener) {
+    this._onIceCandidateForClient = listener;
   }
 
   sendIceCandidateToHost(candidate) {
-    this._sendMessageAsSlave({ice: candidate});
+    this._sendMessageAsClient({ice: candidate});
   }
 
   onIceCandidateForHost(listener) {
     this._onIceCandidateForHost = listener;
   }
 
-  sendOfferToSlave(sessionDescription) {
+  sendOfferToClient(sessionDescription) {
     this._sendMessageAsHost({sdp: sessionDescription});
   }
 
-  onOfferForSlave(listener) {
-    this._onOfferForSlave = listener;
+  onOfferForClient(listener) {
+    this._onOfferForClient = listener;
   }
 
-  sendSlaveIsOnlineToHost() {
-    this._sendMessageAsSlave({isOnline: true});
+  sendClientIsOnlineToHost() {
+    this._sendMessageAsClient({isOnline: true});
   }
 
-  onSlaveIsOnline(listener) {
-    this._onSlaveIsOnline = listener;
+  onClientIsOnline(listener) {
+    this._onClientIsOnline = listener;
   }
 
   sendAnswerToHost(sessionDescription) {
-    this._sendMessageAsSlave({sdp: sessionDescription});
+    this._sendMessageAsClient({sdp: sessionDescription});
   }
 
   onAnswerForHost(listener) {

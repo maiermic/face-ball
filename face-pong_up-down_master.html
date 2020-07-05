@@ -45,7 +45,7 @@
         const peerConnection = new RTCPeerConnection(rtcConfiguration)
         peerConnection.onicecandidate = event => {
           if (event.candidate) {
-            signalingTarget.sendIceCandidateToSlave(event.candidate)
+            signalingTarget.sendIceCandidateToClient(event.candidate)
           }
         }
         signalingTarget.onIceCandidateForHost(candidate => {
@@ -57,7 +57,7 @@
           )
         })
         const channel = peerConnection.createDataChannel('data')
-        const game = new PongHost(function sendMessageToSlave(message) {
+        const game = new PongHost(function sendMessageToClient(message) {
           channel.send(JSON.stringify(message))
         })
         channel.onopen = _event => {
@@ -66,8 +66,8 @@
           // game.start();
         }
         channel.onmessage = event => {
-          console.debug(`received message from slave: "${event.data}"`)
-          game.onSlaveMessage(JSON.parse(event.data))
+          console.debug(`received message from client: "${event.data}"`)
+          game.onClientMessage(JSON.parse(event.data))
         }
         channel.onclose = _event => {
           console.debug('data channel is closed')
@@ -76,10 +76,10 @@
         async function createOffer() {
           const sessionDescriptionInit = await peerConnection.createOffer()
           await peerConnection.setLocalDescription(sessionDescriptionInit)
-          signalingTarget.sendOfferToSlave(sessionDescriptionInit)
+          signalingTarget.sendOfferToClient(sessionDescriptionInit)
         }
 
-        signalingTarget.onSlaveIsOnline(createOffer)
+        signalingTarget.onClientIsOnline(createOffer)
 
         await createOffer()
       }
@@ -118,27 +118,27 @@
       }
 
       class PongHost {
-        constructor(sendMessageToSlave) {
-          this.sendMessageToSlave = sendMessageToSlave
+        constructor(sendMessageToClient) {
+          this.sendMessageToClient = sendMessageToClient
         }
 
         async start() {
           this._game = new RemotePong(640, 480 * 2)
           this._game.onUpdateFrame = () => {
-            this.sendMessageToSlave({
+            this.sendMessageToClient({
               type: 'game state',
               state: this._game.getGameState(),
             })
           }
           this._game.init(document.getElementById('game'))
           await this._game.playerVideo.useUserMedia()
-          this.sendMessageToSlave({
+          this.sendMessageToClient({
             type: 'game state',
             state: this._game.getGameState(),
           })
         }
 
-        onSlaveMessage(message) {
+        onClientMessage(message) {
           switch (message.type) {
             case 'start game':
               this.start()
@@ -148,7 +148,7 @@
               break
             default:
               console.warn(
-                `unknown message from slave: ${JSON.stringify(message)}`
+                `unknown message from client: ${JSON.stringify(message)}`
               )
           }
         }
