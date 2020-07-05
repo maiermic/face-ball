@@ -59,12 +59,24 @@
           await peerConnection.setLocalDescription(answer)
           signalingTarget.sendAnswerToHost(peerConnection.localDescription)
         })
-        peerConnection.ondatachannel = event => {
-          const channel = event.channel
-          const game = new PongClient(function sendMessageToHost(message) {
+        let channel = null
+        const game = new PongClient(function sendMessageToHost(message) {
+          if (channel) {
             channel.send(JSON.stringify(message))
-          })
-
+          } else {
+            console.warn(
+              'Could not send message to host, since channel is not initialized yet',
+              message
+            )
+          }
+        })
+        peerConnection.addStream(await game.opponentVideo)
+        peerConnection.onaddstream = function (e) {
+          console.log('add host stream', e.stream)
+          game.setHostVideo(e.stream)
+        }
+        peerConnection.ondatachannel = event => {
+          channel = event.channel
           channel.onopen = _event => {
             console.debug('data channel is open')
             game.start()
@@ -106,13 +118,18 @@
       class PongClient {
         constructor(sendMessageToHost) {
           this.sendMessageToHost = sendMessageToHost
+          this._game = new RemotePong(640, 480 * 2)
+          this._game.init(document.getElementById('game'))
+          /** @type {Promise<MediaStream>} */
+          this.opponentVideo = this._game.opponentVideo.useUserMedia()
+        }
+
+        setHostVideo(stream) {
+          this._game.playerVideo.setVideoSourceObject(stream)
         }
 
         async start() {
-          this._game = new RemotePong(640, 480 * 2)
-          this._game.init(document.getElementById('game'))
           this.sendMessageToHost({ type: 'start game' })
-          await this._game.opponentVideo.useUserMedia()
           this._game.opponentVideo.bind('FaceDetection', detection => {
             const { x, y, width, height } = detection.absoluteBox
             const radius = Math.min(

@@ -60,6 +60,11 @@
         const game = new PongHost(function sendMessageToClient(message) {
           channel.send(JSON.stringify(message))
         })
+        peerConnection.addStream(await game.playerVideo)
+        peerConnection.onaddstream = function (e) {
+          console.log('add client stream', e.stream)
+          game.setClientVideo(e.stream)
+        }
         channel.onopen = _event => {
           console.debug('data channel is open')
           // channel.send('host is ready');
@@ -120,22 +125,31 @@
       class PongHost {
         constructor(sendMessageToClient) {
           this.sendMessageToClient = sendMessageToClient
+          this._game = new RemotePong(640, 480 * 2)
+          this._game.init(document.getElementById('game'))
+          // pause game till client is connected and ready
+          Crafty.pause()
+          /** @type {Promise<MediaStream>} */
+          this.playerVideo = this._game.playerVideo.useUserMedia()
         }
 
-        async start() {
-          this._game = new RemotePong(640, 480 * 2)
+        setClientVideo(stream) {
+          this._game.opponentVideo.setVideoSourceObject(stream)
+        }
+
+        start() {
+          this.sendMessageToClient({
+            type: 'game state',
+            state: this._game.getGameState(),
+          })
           this._game.onUpdateFrame = () => {
             this.sendMessageToClient({
               type: 'game state',
               state: this._game.getGameState(),
             })
           }
-          this._game.init(document.getElementById('game'))
-          await this._game.playerVideo.useUserMedia()
-          this.sendMessageToClient({
-            type: 'game state',
-            state: this._game.getGameState(),
-          })
+          // unpause game (client is ready)
+          Crafty.pause()
         }
 
         onClientMessage(message) {

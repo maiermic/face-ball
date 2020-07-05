@@ -35,5 +35,6 @@ Crafty.c('Video', {
   async useUserMedia() {
     const stream = await navigator.mediaDevices.getUserMedia({ video: {} })
     this.setVideoSourceObject(stream)
+    return stream
   },
 })
