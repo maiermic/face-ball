@@ -3,9 +3,10 @@ import { doCirclesOverlap } from '../crafty/circle.js'
 import '../crafty/face-detection.js'
 import '../crafty/score.js'
 import '../crafty/video.js'
+import { fitViewportToScene } from '../crafty/viewport.js'
 
 export class FacePong {
-  constructor(boardWidth, boardHeight) {
+  constructor(boardWidth = 640, boardHeight = 960) {
     this._boardWidth = boardWidth
     this._boardHeight = boardHeight
     this._ballConfig = {
@@ -29,9 +30,15 @@ export class FacePong {
     this._ballWithHeadCollision = new BallWithHeadCollision()
   }
 
-  init(element) {
-    Crafty.init(this._boardWidth, this._boardHeight, element)
+  fitViewportToScene() {
+    fitViewportToScene(this._boardWidth, this._boardHeight)
+  }
+
+  init() {
+    Crafty.init()
     Crafty.background('rgb(127,127,127)')
+    window.onresize = () => this.fitViewportToScene()
+
     this.createOpponent()
     this.createPlayer()
     this.createBall()
@@ -44,6 +51,8 @@ export class FacePong {
     // @see http://craftyjs.com/api/Canvas.html
     // Change z-index of canvas to draw above video elements
     document.querySelector('canvas').style.zIndex = '40'
+
+    this.fitViewportToScene()
   }
 
   createOpponent() {

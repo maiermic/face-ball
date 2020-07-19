@@ -15,15 +15,9 @@
         margin: 0;
         padding: 0;
       }
-
-      #game {
-        margin: 0 auto 0;
-      }
     </style>
   </head>
   <body>
-    <div id="game"></div>
-
     <script type="module">
       import { FacePong } from './js/face-pong/up-down.js'
 
@@ -32,9 +26,8 @@
           'https://cdn.rawgit.com/justadudewhohacks/face-api.js/0.22.2/weights/'
         )
 
-        const { clientHeight } = document.documentElement
-        const game = new FacePong(640, clientHeight)
-        game.init(document.getElementById('game'))
+        const game = new FacePong()
+        game.init()
         await game.playerVideo.useUserMedia()
       }
 

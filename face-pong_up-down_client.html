@@ -17,15 +17,9 @@
         margin: 0;
         padding: 0;
       }
-
-      #game {
-        margin: 0 auto 0;
-      }
     </style>
   </head>
   <body>
-    <div id="game"></div>
-
     <script src="js/init-firebase.js"></script>
     <script type="module">
       import { FirebaseSignalingTarget } from './js/webrtc-data-channel/firebase-signaling-target.js'
@@ -118,8 +112,8 @@
       class PongClient {
         constructor(sendMessageToHost) {
           this.sendMessageToHost = sendMessageToHost
-          this._game = new RemotePong(640, 480 * 2)
-          this._game.init(document.getElementById('game'))
+          this._game = new RemotePong()
+          this._game.init()
           /** @type {Promise<MediaStream>} */
           this.opponentVideo = this._game.opponentVideo.useUserMedia()
         }
